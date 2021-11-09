@@ -1,0 +1,29 @@
+<nav class="navbar navbar-expand-lg">
+  <a class="navbar-brand" href="/">Squid Games Turret</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+    <div class="navbar-nav">
+        {% if user.is_authenticated %}
+                <a class="nav-link" id="home" href="/">Home <span class="sr-only">(current)</span></a>
+                <a class="nav-link" id="create-a-project" href="{% url 'teamupp:create-project' %}">Create A Project</a>
+                <a class="nav-link" id="invite-a-teammate" href="{% url 'teamupp:invite' %}">Invite A Teammate</a>
+                <a class="nav-link" id="profile" href="{% url 'teamupp:user-details' pk=request.user.pk %}">Profile</a>
+                {% if user.is_superuser %}
+                    <a class="nav-link " href="/admin">Admin Panel</a>
+                {% endif  %}
+                <a class="nav-link" id="logout" href="/accounts/logout">Logout</a>
+            {% else %}
+                <a class="nav-link"  href="/accounts/login">Login</a>
+                <a class="nav-link"  href="/accounts/register">Sign Up</a>
+        {% endif %}
+    </div>
+  </div>
+{% if user.is_authenticated %}
+ <form class="form-inline" method="get" action="{% url 'teamupp:search' %}">
+    <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" name="search">
+    <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+  </form>
+{% endif %}
+</nav>
