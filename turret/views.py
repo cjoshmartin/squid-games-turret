@@ -1,34 +1,46 @@
-import time
+import cv2
+import threading
 
 import imutils
-import requests
-import cv2
-
-from django.http import HttpResponse
+from django.views.decorators import gzip
+from django.http import StreamingHttpResponse
 from django.views.generic import TemplateView
-from imutils.video import VideoStream
 
 
 class HomeView(TemplateView):
     template_name = "turret/index.html"
 
 
+class VideoCamera(object):
+    def __init__(self):
+        self.video = cv2.VideoCapture(0)
+        (self.grabbed, self.frame) = self.video.read()
+        threading.Thread(target=self.update, args=()).start()
+
+    def __del__(self):
+        self.video.release()
+
+    def get_frame(self):
+        image = imutils.resize(self.frame, width=400)
+        _, jpeg = cv2.imencode('.jpg', image)
+        return jpeg.tobytes()
+
+    def update(self):
+        while True:
+            (self.grabbed, self.frame) = self.video.read()
+
+
+def gen(camera):
+    while True:
+        frame = camera.get_frame()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+
+
+@gzip.gzip_page
 def video_feed(request):
-    vs = VideoStream(src=0, framerate=10).start()
-    time.sleep(2.0)
-
-    frame = vs.read()
-    frame = imutils.resize(frame, width=500)
-    outputFrame = frame.copy()
-
-    # encode the frame in JPEG format
-    (flag, encodedImage) = cv2.imencode(".jpg", outputFrame)
-
-    content = (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' +
-               bytearray(encodedImage) + b'\r\n')
-
-    vs.stop()
-    response = HttpResponse(content, content_type="multipart/x-mixed-replace; boundary=frame")
-    response['Content-Length'] = len(content)
-
-    return response
+    try:
+        cam = VideoCamera()
+        return StreamingHttpResponse(gen(cam), content_type="multipart/x-mixed-replace;boundary=frame")
+    except:  # This is bad! replace it with proper handling
+        pass
