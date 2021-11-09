@@ -1,36 +1,15 @@
-import cv2
-import threading
-
-import imutils
 from django.views.decorators import gzip
 from django.http import StreamingHttpResponse
 from django.views.generic import TemplateView
+
+from turret.VideoCamera import VideoCamera
 
 
 class HomeView(TemplateView):
     template_name = "turret/index.html"
 
 
-class VideoCamera(object):
-    def __init__(self):
-        self.video = cv2.VideoCapture(0)
-        (self.grabbed, self.frame) = self.video.read()
-        threading.Thread(target=self.update, args=()).start()
-
-    def __del__(self):
-        self.video.release()
-
-    def get_frame(self):
-        image = imutils.resize(self.frame, width=400)
-        _, jpeg = cv2.imencode('.jpg', image)
-        return jpeg.tobytes()
-
-    def update(self):
-        while True:
-            (self.grabbed, self.frame) = self.video.read()
-
-
-def gen(camera):
+def generate_frames(camera):
     while True:
         frame = camera.get_frame()
         yield (b'--frame\r\n'
@@ -41,6 +20,6 @@ def gen(camera):
 def video_feed(request):
     try:
         cam = VideoCamera()
-        return StreamingHttpResponse(gen(cam), content_type="multipart/x-mixed-replace;boundary=frame")
+        return StreamingHttpResponse(generate_frames(cam), content_type="multipart/x-mixed-replace;boundary=frame")
     except:  # This is bad! replace it with proper handling
         pass
