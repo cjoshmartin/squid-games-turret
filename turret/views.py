@@ -1,9 +1,12 @@
+import time
+
+import imutils
+import requests
+import cv2
+
 from django.http import HttpResponse
 from django.views.generic import TemplateView
-import requests
-
-
-# Create your views here.
+from imutils.video import VideoStream
 
 
 class HomeView(TemplateView):
@@ -11,12 +14,20 @@ class HomeView(TemplateView):
 
 
 def video_feed(request):
-    encodedImage = "https://cdn.memes.com/up/48152831613759157/i/1636247739238.jpg"
-    request = requests.get(encodedImage)
+    vs = VideoStream(src=0, framerate=10).start()
+    time.sleep(2.0)
+
+    frame = vs.read()
+    frame = imutils.resize(frame, width=500)
+    outputFrame = frame.copy()
+
+    # encode the frame in JPEG format
+    (flag, encodedImage) = cv2.imencode(".jpg", outputFrame)
 
     content = (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' +
-     bytearray(request.content) + b'\r\n')
+               bytearray(encodedImage) + b'\r\n')
 
+    vs.stop()
     response = HttpResponse(content, content_type="multipart/x-mixed-replace; boundary=frame")
     response['Content-Length'] = len(content)
 
